@@ -1,7 +1,7 @@
 ﻿<Properties StartupConfiguration="{A460687F-05ED-4B5E-8362-096DB44DAD3D}|Default">
-  <MonoDevelop.Ide.Workbench ActiveDocument="prozorro/oradbConnectionString.txt">
+  <MonoDevelop.Ide.Workbench ActiveDocument="prozorro/Program.cs">
     <Files>
-      <File FileName="prozorro/Program.cs" Line="226" Column="90" />
+      <File FileName="prozorro/Program.cs" Line="471" Column="14" />
       <File FileName="prozorro/OracleDBcontext.cs" Line="8" Column="16" />
       <File FileName="prozorro/oradbConnectionString.txt" Line="1" Column="1" />
     </Files>
@@ -10,7 +10,7 @@
         <State name="__root__">
           <Node name="prozorro" expanded="True">
             <Node name="prozorro" expanded="True">
-              <Node name="oradbConnectionString.txt" selected="True" />
+              <Node name="Program.cs" selected="True" />
             </Node>
           </Node>
         </State>
