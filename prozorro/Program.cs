@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -29,6 +30,7 @@ namespace prozorro
         static string YEAR;
         static string MONTH;
         static string DAY;
+        static string ConnString;
         static void Main(string[] args)
         {
             //   string a1 = "\u0410\u0441\u0444\u0430\u043b\u044c\u0442";
@@ -36,6 +38,10 @@ namespace prozorro
             //   Console.WriteLine(System.Text.RegularExpressions.Regex.Unescape(a1));
 
             // Console.ReadLine();
+            if (args[1].Contains("usedbwriter"))
+            {
+                ConnString = GetDatabaseConnectionString();
+            }
             try
             {
                 for (int x = 0; x < codesList.Length; x++)
@@ -214,7 +220,15 @@ namespace prozorro
             Console.WriteLine("Done!");
             Console.ReadLine();
         }
-
+        private static string GetDatabaseConnectionString()
+        {
+            string result = "";
+            using(StreamReader streamReader = new StreamReader("oradbConnectionString.txt"))
+            {
+                result = streamReader.ReadLine();
+            }
+            return result;
+        }
         private static void CheckID(string addons)
         {
             WebRequest request = WebRequest.Create(addons);
@@ -574,12 +588,13 @@ namespace prozorro
                 }
                 dt[x] = d1;
             }
-
+            WriteToDB(dt);
             for (int a = 0; a < dt.Length; a++)
             {
                 if (EDRPOUCodes.Contains(dt[a].Ident_ID))
                 {
                     WriteToExcel(dt[a]);
+                    //new Task(() => { WriteToDB(dt[a]); });
                     incrementInExcel++;
                 }
             }
@@ -589,7 +604,38 @@ namespace prozorro
                 wb.Write(fs);
             }
         }
-
+        static async void WriteToDB(Data[] data)
+        {
+            try
+            {
+                using (OracleDBcontext oracleDBcontext = new OracleDBcontext(ConnString))
+                {
+                    for (int x = 0; x < data.Length; x++)
+                    {
+                        try
+                        {
+                            if (EDRPOUCodes.Contains(data[x].Ident_ID))
+                            {
+                                await oracleDBcontext.ProzorroParsedDatas.AddAsync(data[x]);
+                            }
+                        }
+                        catch(Exception exc)
+                        {
+                            Console.ForegroundColor = ConsoleColor.Red;
+                            Console.WriteLine(exc.ToString());
+                            Console.ForegroundColor = ConsoleColor.White;
+                        }
+                    }
+                    await oracleDBcontext.SaveChangesAsync();
+                }
+            }
+            catch(Exception er)
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.WriteLine(er.ToString());
+                Console.ForegroundColor = ConsoleColor.White;
+            }
+        }
         static void WriteToExcel(Data dat)
         {
             int num = incrementInExcel;
@@ -643,66 +689,69 @@ namespace prozorro
 
         static ISheet sheet;
 
-        public struct StartPage
+    }
+
+    public class StartPage
+    {
+        public NextPage next_page;
+
+        public DataSample[] data;
+        public class NextPage
         {
-            public NextPage next_page;
+            public string path;
 
-            public DataSample[] data;
-            public struct NextPage
-            {
-                public string path;
+            public string uri;
 
-                public string uri;
-
-                public string offset;
-            }
-
-            public struct DataSample
-            {
-                public string id;
-
-                public string dateModified;
-            }
+            public string offset;
         }
 
-        public struct Data
+        public class DataSample
         {
-            public string AddDate;
+            public string id;
 
-            public string ExpireDate;
-
-            public string enqueryPeriod;
-
-            public string clarificationUntil;
-
-            public string awardPeriodStartDate;
-
-            public string Code;
-
-            public string value_amount;
-
-            public string Class_ID;
-
-            public string classification_description;
-
-            public string description;
-
-            public string quantity;
-
-            public string CodePostpayment;
-
-            public string deliveryDate;
-
-            public string Ident_ID;
-
-            public string Ident_LegalName;
-
-            public string contactPoint;
-
-            public string Address;
-
-            public string ProzorroLink;
+            public string dateModified;
         }
+    }
 
+    public class Data
+    {
+        [Key]
+        public Guid Id { get; set; }
+
+        public string AddDate;
+
+        public string ExpireDate;
+
+        public string enqueryPeriod;
+
+        public string clarificationUntil;
+
+        public string awardPeriodStartDate;
+
+        public string Code;
+
+        public string value_amount;
+
+        public string Class_ID;
+
+        public string classification_description;
+
+        public string description;
+
+        public string quantity;
+
+        public string CodePostpayment;
+
+        public string deliveryDate;
+
+        public string Ident_ID;
+
+        public string Ident_LegalName;
+
+        public string contactPoint;
+
+        public string Address;
+
+        public string ProzorroLink;
     }
 }

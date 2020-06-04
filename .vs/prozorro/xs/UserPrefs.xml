@@ -1,0 +1,30 @@
+﻿<Properties StartupConfiguration="{A460687F-05ED-4B5E-8362-096DB44DAD3D}|Default">
+  <MonoDevelop.Ide.Workbench ActiveDocument="prozorro/oradbConnectionString.txt">
+    <Files>
+      <File FileName="prozorro/Program.cs" Line="226" Column="90" />
+      <File FileName="prozorro/OracleDBcontext.cs" Line="8" Column="16" />
+      <File FileName="prozorro/oradbConnectionString.txt" Line="1" Column="1" />
+    </Files>
+    <Pads>
+      <Pad Id="ProjectPad">
+        <State name="__root__">
+          <Node name="prozorro" expanded="True">
+            <Node name="prozorro" expanded="True">
+              <Node name="oradbConnectionString.txt" selected="True" />
+            </Node>
+          </Node>
+        </State>
+      </Pad>
+    </Pads>
+  </MonoDevelop.Ide.Workbench>
+  <MonoDevelop.Ide.ItemProperties.prozorro PreferredExecutionTarget="MonoDevelop.Default" />
+  <MonoDevelop.Ide.DebuggingService.PinnedWatches />
+  <DisabledProjects>
+    <String>prozorro/prozorro.csproj</String>
+  </DisabledProjects>
+  <MonoDevelop.Ide.Workspace ActiveConfiguration="Debug" />
+  <MonoDevelop.Ide.DebuggingService.Breakpoints>
+    <BreakpointStore />
+  </MonoDevelop.Ide.DebuggingService.Breakpoints>
+  <MultiItemStartupConfigurations />
+</Properties>
