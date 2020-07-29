@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -30,7 +30,6 @@ namespace prozorro
         static string YEAR;
         static string MONTH;
         static string DAY;
-        static string ConnString;
         static void Main(string[] args)
         {
             //   string a1 = "\u0410\u0441\u0444\u0430\u043b\u044c\u0442";
@@ -38,12 +37,10 @@ namespace prozorro
             //   Console.WriteLine(System.Text.RegularExpressions.Regex.Unescape(a1));
 
             // Console.ReadLine();
-            if (args[1].Contains("usedbwriter"))
-            {
-                ConnString = GetDatabaseConnectionString();
-            }
             try
             {
+                //Console.WriteLine(DateTime.Now.ToString());
+                
                 for (int x = 0; x < codesList.Length; x++)
                 {
                     if (!Codes.Contains(codesList[x]))
@@ -68,18 +65,27 @@ namespace prozorro
                         }
                     }
                 }
-
-                using (StreamReader sr = new StreamReader("EDRPOU.txt"))
+                Console.WriteLine("Використовувати ЄДРПОУ? (y/n)");
+                bool useEDRPOU = (Console.ReadLine().ToLower() == "y") ? true : false;
+                if (useEDRPOU)
                 {
-                    string line;
-
-                    while ((line = sr.ReadLine()) != null)
+                    using (StreamReader sr = new StreamReader("EDRPOU.txt"))
                     {
-                        if (!EDRPOUCodes.Contains(line))
+                        string line;
+
+                        while ((line = sr.ReadLine()) != null)
                         {
-                            EDRPOUCodes.Add(line);
+                            if (!EDRPOUCodes.Contains(line))
+                            {
+                                EDRPOUCodes.Add(line);
+                            }
                         }
                     }
+                }
+                else
+                {
+                    EDRPOUCodes.Clear();
+                    EDRPOUCodes.Add("");
                 }
                 List<string> columnsnames = new List<string>();
                 using (StreamReader sr = new StreamReader("ColumnNames.txt"))
@@ -125,7 +131,17 @@ namespace prozorro
                 {
                     date = vb;
                 }
+                Console.WriteLine("Почати з вказаного часу? (y/n)");
+                if (Console.ReadLine().ToLower() == "y")
+                {
+                    Console.WriteLine("Введіть дату у форматі: yyyy-MM-dd hh:mm:ss");
+                    var targetTime = DateTime.ParseExact(Console.ReadLine(), "yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture);
+                    while (DateTime.Now.ToString() != targetTime.ToString())
+                    {
 
+                    }
+
+                }
                 sheet = wb.CreateSheet(YEAR + "-" + MONTH + "-" + DAY);
 
                 IRow row = sheet.CreateRow(0);
@@ -171,7 +187,7 @@ namespace prozorro
                 response0.Close();
 
                 string nextPage = sp0.next_page.path;
-
+                List<Task> RunningTasks = new List<Task>();
                 while (!resp.Contains("\"data\": [], \"prev_page\""))
                 {
 
@@ -191,24 +207,32 @@ namespace prozorro
 
                     resp = responseFromServer;
 
-
-
-
-                    StartPage sp = JsonConvert.DeserializeObject<StartPage>(responseFromServer);
-
-                    nextPage = sp.next_page.path;
-
-                    for (int x = 0; x < sp.data.Length; x++)
-                    {
-                        CheckID(webURL + "/api/2.5/tenders/" + sp.data[x].id);
-                        //Console.WriteLine(sp.data[x].dateModified);
-                    }
-
-                    // Cleanup the streams and the response. 
                     reader.Close();
                     dataStream.Close();
                     response.Close();
 
+                    Task parsingTask = new Task(() =>
+                    {
+
+
+                        StartPage sp = JsonConvert.DeserializeObject<StartPage>(responseFromServer);
+
+                        nextPage = sp.next_page.path;
+
+                        for (int x = 0; x < sp.data.Length; x++)
+                        {
+                            CheckID(webURL + "/api/2.5/tenders/" + sp.data[x].id, useEDRPOU);
+                            //Console.WriteLine(sp.data[x].dateModified);
+                        }
+                    });
+                    RunningTasks.Add(parsingTask);
+                    parsingTask.Start();
+                    
+                }
+                Task.WaitAll(RunningTasks.ToArray());
+                using (FileStream fs = new FileStream(ExcelFileName, FileMode.Create, FileAccess.Write))
+                {
+                    wb.Write(fs);
                 }
             }
             catch(Exception er)
@@ -220,16 +244,8 @@ namespace prozorro
             Console.WriteLine("Done!");
             Console.ReadLine();
         }
-        private static string GetDatabaseConnectionString()
-        {
-            string result = "";
-            using(StreamReader streamReader = new StreamReader("oradbConnectionString.txt"))
-            {
-                result = streamReader.ReadLine();
-            }
-            return result;
-        }
-        private static void CheckID(string addons)
+
+        private static void CheckID(string addons, bool UseEdrpou)
         {
             WebRequest request = WebRequest.Create(addons);
 
@@ -261,7 +277,7 @@ namespace prozorro
 
                 // Console.WriteLine(obj["id"]);
 
-                Parser(responseFromServer);
+                Parser(responseFromServer, UseEdrpou);
 
                 Console.ForegroundColor = ConsoleColor.White;
             }
@@ -405,7 +421,7 @@ namespace prozorro
            
         }*/
 
-        static void Parser(string responseFromServer0)
+        static void Parser(string responseFromServer0, bool UseEdrpou)
         {
             Data dat = new Data();
 
@@ -588,170 +604,147 @@ namespace prozorro
                 }
                 dt[x] = d1;
             }
-            WriteToDB(dt);
+
             for (int a = 0; a < dt.Length; a++)
             {
-                if (EDRPOUCodes.Contains(dt[a].Ident_ID))
+                if (UseEdrpou)
                 {
-                    WriteToExcel(dt[a]);
-                    //new Task(() => { WriteToDB(dt[a]); });
-                    incrementInExcel++;
+                    if (EDRPOUCodes.Contains(dt[a].Ident_ID))
+                    {
+                        WriteToExcel(dt[a]);
+                    }
+                }
+                else
+                {
+                    //if (Convert.ToDouble(dt[a].value_amount) > 500000)
+                    //{
+                        WriteToExcel(dt[a]);
+                    //}
                 }
             }
 
-            using (FileStream fs = new FileStream(ExcelFileName, FileMode.Create, FileAccess.Write))
-            {
-                wb.Write(fs);
-            }
+            //using (FileStream fs = new FileStream(ExcelFileName, FileMode.Create, FileAccess.Write))
+            //{
+            //    wb.Write(fs);
+            //}
         }
-        static async void WriteToDB(Data[] data)
-        {
-            try
-            {
-                using (OracleDBcontext oracleDBcontext = new OracleDBcontext(ConnString))
-                {
-                    for (int x = 0; x < data.Length; x++)
-                    {
-                        try
-                        {
-                            if (EDRPOUCodes.Contains(data[x].Ident_ID))
-                            {
-                                await oracleDBcontext.ProzorroParsedDatas.AddAsync(data[x]);
-                            }
-                        }
-                        catch(Exception exc)
-                        {
-                            Console.ForegroundColor = ConsoleColor.Red;
-                            Console.WriteLine(exc.ToString());
-                            Console.ForegroundColor = ConsoleColor.White;
-                        }
-                    }
-                    await oracleDBcontext.SaveChangesAsync();
-                }
-            }
-            catch(Exception er)
-            {
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine(er.ToString());
-                Console.ForegroundColor = ConsoleColor.White;
-            }
-        }
+
         static void WriteToExcel(Data dat)
         {
-            int num = incrementInExcel;
-
-            sheet.CreateRow(num);
-            for (int i = 0; i < 18; i++)
+            lock (sheet)
             {
-                sheet.GetRow(num).CreateCell(i);
+                int num = incrementInExcel;
+
+                sheet.CreateRow(num);
+                for (int i = 0; i < 18; i++)
+                {
+                    sheet.GetRow(num).CreateCell(i);
+                }
+
+                sheet.GetRow(num).GetCell(0).SetCellValue(dat.AddDate);
+
+                sheet.GetRow(num).GetCell(1).SetCellValue(dat.ExpireDate);
+
+                sheet.GetRow(num).GetCell(2).SetCellValue(dat.enqueryPeriod);
+
+                sheet.GetRow(num).GetCell(3).SetCellValue(dat.clarificationUntil);
+
+                sheet.GetRow(num).GetCell(4).SetCellValue(dat.awardPeriodStartDate);
+
+                sheet.GetRow(num).GetCell(5).SetCellValue(dat.Code);
+
+                sheet.GetRow(num).GetCell(6).SetCellValue(dat.value_amount);
+
+                sheet.GetRow(num).GetCell(7).SetCellValue(dat.Class_ID);
+
+                sheet.GetRow(num).GetCell(8).SetCellValue(dat.classification_description);
+
+                sheet.GetRow(num).GetCell(9).SetCellValue(dat.description);
+
+                sheet.GetRow(num).GetCell(10).SetCellValue(dat.quantity);
+
+                sheet.GetRow(num).GetCell(11).SetCellValue(dat.CodePostpayment);
+
+                sheet.GetRow(num).GetCell(12).SetCellValue(dat.deliveryDate);
+
+                sheet.GetRow(num).GetCell(13).SetCellValue(dat.Ident_ID);
+
+                sheet.GetRow(num).GetCell(14).SetCellValue(dat.Ident_LegalName);
+
+                sheet.GetRow(num).GetCell(15).SetCellValue(dat.contactPoint);
+
+                sheet.GetRow(num).GetCell(16).SetCellValue(dat.Address);
+
+                sheet.GetRow(num).GetCell(17).SetCellValue(dat.ProzorroLink);
+
+                incrementInExcel++;
             }
-
-            sheet.GetRow(num).GetCell(0).SetCellValue(dat.AddDate);
-
-            sheet.GetRow(num).GetCell(1).SetCellValue(dat.ExpireDate);
-
-            sheet.GetRow(num).GetCell(2).SetCellValue(dat.enqueryPeriod);
-
-            sheet.GetRow(num).GetCell(3).SetCellValue(dat.clarificationUntil);
-
-            sheet.GetRow(num).GetCell(4).SetCellValue(dat.awardPeriodStartDate);
-
-            sheet.GetRow(num).GetCell(5).SetCellValue(dat.Code);
-
-            sheet.GetRow(num).GetCell(6).SetCellValue(dat.value_amount);
-
-            sheet.GetRow(num).GetCell(7).SetCellValue(dat.Class_ID);
-
-            sheet.GetRow(num).GetCell(8).SetCellValue(dat.classification_description);
-
-            sheet.GetRow(num).GetCell(9).SetCellValue(dat.description);
-
-            sheet.GetRow(num).GetCell(10).SetCellValue(dat.quantity);
-
-            sheet.GetRow(num).GetCell(11).SetCellValue(dat.CodePostpayment);
-
-            sheet.GetRow(num).GetCell(12).SetCellValue(dat.deliveryDate);
-
-            sheet.GetRow(num).GetCell(13).SetCellValue(dat.Ident_ID);
-
-            sheet.GetRow(num).GetCell(14).SetCellValue(dat.Ident_LegalName);
-
-            sheet.GetRow(num).GetCell(15).SetCellValue(dat.contactPoint);
-
-            sheet.GetRow(num).GetCell(16).SetCellValue(dat.Address);
-
-            sheet.GetRow(num).GetCell(17).SetCellValue(dat.ProzorroLink);
-
-
         }
 
         static XSSFWorkbook wb = new XSSFWorkbook();
 
         static ISheet sheet;
 
-    }
-
-    public class StartPage
-    {
-        public NextPage next_page;
-
-        public DataSample[] data;
-        public class NextPage
+        public struct StartPage
         {
-            public string path;
+            public NextPage next_page;
 
-            public string uri;
+            public DataSample[] data;
+            public struct NextPage
+            {
+                public string path;
 
-            public string offset;
+                public string uri;
+
+                public string offset;
+            }
+
+            public struct DataSample
+            {
+                public string id;
+
+                public string dateModified;
+            }
         }
 
-        public class DataSample
+        public struct Data
         {
-            public string id;
+            public string AddDate;
 
-            public string dateModified;
+            public string ExpireDate;
+
+            public string enqueryPeriod;
+
+            public string clarificationUntil;
+
+            public string awardPeriodStartDate;
+
+            public string Code;
+
+            public string value_amount;
+
+            public string Class_ID;
+
+            public string classification_description;
+
+            public string description;
+
+            public string quantity;
+
+            public string CodePostpayment;
+
+            public string deliveryDate;
+
+            public string Ident_ID;
+
+            public string Ident_LegalName;
+
+            public string contactPoint;
+
+            public string Address;
+
+            public string ProzorroLink;
         }
-    }
 
-    public class Data
-    {
-        [Key]
-        public Guid Id { get; set; }
-
-        public string AddDate;
-
-        public string ExpireDate;
-
-        public string enqueryPeriod;
-
-        public string clarificationUntil;
-
-        public string awardPeriodStartDate;
-
-        public string Code;
-
-        public string value_amount;
-
-        public string Class_ID;
-
-        public string classification_description;
-
-        public string description;
-
-        public string quantity;
-
-        public string CodePostpayment;
-
-        public string deliveryDate;
-
-        public string Ident_ID;
-
-        public string Ident_LegalName;
-
-        public string contactPoint;
-
-        public string Address;
-
-        public string ProzorroLink;
     }
 }

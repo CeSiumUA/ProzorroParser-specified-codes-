@@ -1,0 +1,13 @@
+H:\repos\prozorro1\automation\bin\Debug\netcoreapp3.1\automation.exe
+H:\repos\prozorro1\automation\bin\Debug\netcoreapp3.1\automation.deps.json
+H:\repos\prozorro1\automation\bin\Debug\netcoreapp3.1\automation.runtimeconfig.json
+H:\repos\prozorro1\automation\bin\Debug\netcoreapp3.1\automation.runtimeconfig.dev.json
+H:\repos\prozorro1\automation\bin\Debug\netcoreapp3.1\automation.dll
+H:\repos\prozorro1\automation\bin\Debug\netcoreapp3.1\automation.pdb
+H:\repos\prozorro1\automation\obj\Debug\netcoreapp3.1\automation.csprojAssemblyReference.cache
+H:\repos\prozorro1\automation\obj\Debug\netcoreapp3.1\automation.AssemblyInfoInputs.cache
+H:\repos\prozorro1\automation\obj\Debug\netcoreapp3.1\automation.AssemblyInfo.cs
+H:\repos\prozorro1\automation\obj\Debug\netcoreapp3.1\automation.csproj.CoreCompileInputs.cache
+H:\repos\prozorro1\automation\obj\Debug\netcoreapp3.1\automation.dll
+H:\repos\prozorro1\automation\obj\Debug\netcoreapp3.1\automation.pdb
+H:\repos\prozorro1\automation\obj\Debug\netcoreapp3.1\automation.genruntimeconfig.cache
